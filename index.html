@@ -1,138 +1,243 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Islamic App Pro</title>
-
-<!-- ✅ FIX UTAMA: HOWLER BENAR -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/howler/2.2.3/howler.min.js"></script>
-
-<style>
-body{
-  margin:0;
-  padding:12px;
-  font-family:Segoe UI,sans-serif;
-  background:#121212;
-  color:#eee;
-}
-.card{
-  background:#1e1e1e;
-  border-radius:18px;
-  padding:14px;
-  margin-bottom:14px;
-}
-h3{color:#ffc107;margin-bottom:6px}
-.sholat{display:flex;justify-content:space-between;margin:5px 0}
-.active{color:#ffc107;font-weight:bold}
-input,button,select{
-  width:100%;
-  padding:10px;
-  margin-top:6px;
-  border-radius:10px;
-  border:none;
-}
-button{background:#1b5e20;color:white;font-weight:bold}
-.btn-play.playing{background:#b71c1c}
-</style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Muslim Daily V2</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Plus+Jakarta+Sans:wght@300;400;600&display=swap" rel="stylesheet">
+    <style>
+        :root { --gold: #bf953f; --slate: #0f172a; }
+        body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #020617; color: #f8fafc; overflow-x: hidden; }
+        .gold-text { background: linear-gradient(to right, #bf953f, #fcf6ba, #b38728, #aa771c); -webkit-background-clip: text; -webkit-text-fill-color: transparent; font-family: 'Playfair Display', serif; }
+        .kaaba-bg { background: linear-gradient(rgba(2,6,23,0.7), rgba(2,6,23,0.95)), url('https://c4.wallpaperflare.com/wallpaper/485/286/548/cityscapes-religious-wallpaper-preview.jpg'); background-size: cover; background-position: center; }
+        .glass-card { background: rgba(15, 23, 42, 0.5); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.05); }
+        .active-prayer { border: 1px solid var(--gold); background: rgba(191, 149, 63, 0.1); box-shadow: 0 0 20px rgba(191, 149, 63, 0.2); transform: scale(1.02); }
+        .tracker-check:checked + span { color: var(--gold); text-decoration: line-through; opacity: 0.5; }
+    </style>
 </head>
+<body class="pb-10">
 
-<body>
+    <!-- HERO: COUNTDOWN & CLOCK -->
+    <section class="kaaba-bg pt-10 pb-16 px-6 text-center border-b border-amber-900/20">
+        <h1 class="text-3xl font-bold gold-text mb-6">Muslim Daily</h1>
+        
+        <div class="glass-card max-w-sm mx-auto p-8 rounded-[2.5rem] shadow-2xl relative">
+            <span id="next-label" class="text-[10px] tracking-[0.4em] text-amber-500 uppercase font-bold">Countdown</span>
+            <h2 id="next-prayer-name" class="text-4xl font-bold mt-2 text-white">-</h2>
+            <div id="countdown" class="text-6xl font-light tracking-tighter my-4 tabular-nums">00:00:00</div>
+            <p id="live-clock" class="text-xs font-mono text-slate-400 tracking-widest">00:00:00</p>
+        </div>
 
-<div class="card" style="text-align:center">
-  <h3>🕒 Waktu</h3>
-  <div id="jam"></div>
-  <div id="tanggal"></div>
-</div>
+        <div class="mt-6 flex justify-center gap-3">
+            <div id="hijri-full" class="text-[10px] bg-amber-600/10 border border-amber-600/20 px-4 py-2 rounded-full text-amber-400 font-bold uppercase">Memuat...</div>
+        </div>
+    </section>
 
-<div class="card">
-  <h3>🕌 Jadwal Sholat</h3>
-  <div id="countdown"></div>
-  <div id="jadwal"></div>
-</div>
+    <main class="max-w-4xl mx-auto px-4 -mt-8">
+        
+        <!-- SEARCH CITY -->
+        <div class="relative mb-8">
+            <i class="fa-solid fa-magnifying-glass absolute left-5 top-1/2 -translate-y-1/2 text-slate-500"></i>
+            <input type="text" id="city-input" 
+                class="w-full bg-slate-900/90 border border-slate-800 rounded-3xl py-5 pl-14 pr-6 text-white focus:outline-none focus:border-amber-600 transition-all"
+                placeholder="Cari Kota (Contoh: Surabaya)...">
+        </div>
 
-<div class="card">
-  <input id="kota" value="Jakarta">
-  <button onclick="loadSholat()">Cari Kota</button>
-</div>
+        <!-- PRAYER GRID -->
+        <div id="prayer-grid" class="grid grid-cols-3 md:grid-cols-6 gap-3 mb-8"></div>
 
-<div class="card">
-  <h3>📖 Murottal</h3>
-  <select id="surah"></select>
-  <button id="btnPlay" onclick="toggleAudio()">▶ PUTAR</button>
-</div>
+        <!-- MUROTTAL PLAYER -->
+        <div class="glass-card rounded-[2.5rem] p-8 mb-8 border-l-4 border-l-amber-600 shadow-xl">
+            <h3 class="text-amber-500 font-bold text-xs uppercase tracking-widest mb-4"><i class="fa-solid fa-music mr-2"></i>Murottal Quran</h3>
+            <div class="flex flex-col md:flex-row gap-4">
+                <select id="surah-select" class="flex-1 bg-slate-800 border border-slate-700 p-3 rounded-xl text-sm text-white outline-none">
+                    <option value="">Pilih Surah...</option>
+                </select>
+                <audio id="audio-player" controls class="w-full md:w-64 h-10"></audio>
+            </div>
+        </div>
 
-<div class="card">
-  <h3>📜 Hadist</h3>
-  <div id="hadist"></div>
-</div>
+        <!-- TOOLS: TASBIH & COMPASS -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+            <!-- Smart Tasbih -->
+            <div class="glass-card p-8 rounded-[2.5rem] text-center flex flex-col items-center">
+                <p class="text-[10px] text-amber-500 font-bold uppercase tracking-widest mb-2">Smart Tasbih</p>
+                <p id="tasbih-label" class="text-[10px] text-slate-500 italic mb-4">Subhanallah</p>
+                <div id="tasbih-display" class="text-6xl font-bold gold-text mb-6">0</div>
+                <button onclick="countTasbih()" class="w-24 h-24 rounded-full bg-slate-800 border-4 border-amber-600/20 flex items-center justify-center active:scale-95 transition-all shadow-xl">
+                    <i class="fa-solid fa-fingerprint text-3xl text-amber-500"></i>
+                </button>
+                <button onclick="resetTasbih()" class="mt-4 text-[9px] text-slate-600 uppercase hover:text-white">Reset</button>
+            </div>
 
-<script>
-/* ===== JAM ===== */
-function updateTime(){
-  const d=new Date();
-  jam.innerText=d.toLocaleTimeString("id-ID",{hour12:false});
-  tanggal.innerText=d.toLocaleDateString("id-ID",{weekday:"long",day:"numeric",month:"long",year:"numeric"});
-}
-setInterval(updateTime,1000);updateTime();
+            <!-- Compass -->
+            <div class="glass-card p-8 rounded-[2.5rem] flex flex-col items-center justify-center">
+                <p class="text-[10px] text-amber-500 font-bold uppercase tracking-widest mb-8">Kiblat</p>
+                <div class="relative w-36 h-36 border-2 border-slate-800 rounded-full flex items-center justify-center">
+                    <i class="fa-solid fa-location-arrow text-amber-500 text-5xl transition-transform" id="needle"></i>
+                </div>
+            </div>
+        </div>
 
-/* ===== SHOLAT ===== */
-let jadwal={};
-async function loadSholat(){
-  try{
-    const kota=document.getElementById("kota").value;
-    const r=await fetch(
-      `https://api.aladhan.com/v1/timingsByAddress?address=${encodeURIComponent(kota)}&country=Indonesia&method=11`
-    );
-    const j=await r.json();
-    jadwal=j.data.timings;
+        <!-- TRACKER & MAPS -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div class="glass-card p-6 rounded-[2.5rem]">
+                <h3 class="text-amber-500 font-bold text-[10px] uppercase tracking-widest mb-4">Checklist Sunnah</h3>
+                <div class="space-y-3">
+                    <label class="flex items-center gap-3 cursor-pointer">
+                        <input type="checkbox" class="tracker-check hidden" onchange="saveCheck(this, 'dhuha')">
+                        <div class="w-5 h-5 border border-slate-700 rounded bg-slate-800 flex items-center justify-center"><i class="fa-solid fa-check text-[10px] text-amber-500 opacity-0 transition-opacity"></i></div>
+                        <span class="text-xs text-slate-400">Sholat Dhuha</span>
+                    </label>
+                    <label class="flex items-center gap-3 cursor-pointer">
+                        <input type="checkbox" class="tracker-check hidden" onchange="saveCheck(this, 'tahajjud')">
+                        <div class="w-5 h-5 border border-slate-700 rounded bg-slate-800 flex items-center justify-center"><i class="fa-solid fa-check text-[10px] text-amber-500 opacity-0 transition-opacity"></i></div>
+                        <span class="text-xs text-slate-400">Sholat Tahajjud</span>
+                    </label>
+                </div>
+            </div>
 
-    jadwalDiv="";
-    ["Fajr","Dhuhr","Asr","Maghrib","Isha"].forEach(k=>{
-      jadwalDiv+=`<div class="sholat">${k} <span>${jadwal[k]}</span></div>`;
-    });
-    jadwal.innerHTML=jadwalDiv;
-  }catch{
-    jadwal.innerHTML="❌ Gagal memuat jadwal";
-  }
-}
-loadSholat();
+            <a href="https://www.google.com/maps/search/masjid+terdekat/" target="_blank" class="glass-card p-6 rounded-[2.5rem] flex items-center justify-center gap-4 hover:bg-amber-600/5 transition-all">
+                <i class="fa-solid fa-mosque text-amber-500 text-3xl"></i>
+                <div class="text-left">
+                    <p class="text-xs font-bold uppercase">Cari Masjid</p>
+                    <p class="text-[9px] text-slate-500 uppercase">Buka Maps Terdekat</p>
+                </div>
+            </a>
+        </div>
+    </main>
 
-/* ===== MUROTTAL ===== */
-let sound;
-async function loadSurah(){
-  const r=await fetch("https://api.alquran.cloud/v1/surah");
-  const j=await r.json();
-  j.data.forEach(s=>{
-    surah.add(new Option(`${s.number}. ${s.englishName}`,s.number));
-  });
-}
-loadSurah();
+    <footer class="mt-12 text-center opacity-20 py-8">
+        <p class="text-[9px] tracking-[0.5em] gold-text uppercase">Muslim Daily Premium Edition 2026</p>
+    </footer>
 
-function toggleAudio(){
-  if(!sound){
-    sound=new Howl({
-      src:[`https://cdn.islamic.network/quran/audio-surah/128/ar.alafasy/${surah.value}.mp3`],
-      html5:true
-    });
-  }
-  sound.playing()?sound.pause():sound.play();
-  btnPlay.classList.toggle("playing");
-}
+    <script>
+        let prayerTimes = {};
+        let currentCity = localStorage.getItem('userCity') || 'Pasuruan';
+        let tCount = parseInt(localStorage.getItem('tVal')) || 0;
 
-/* ===== HADIST ===== */
-async function loadHadist(){
-  try{
-    const r=await fetch("https://api.hadith.gading.dev/books/bukhari?range=1-200");
-    const j=await r.json();
-    hadist.innerText=j.data.hadiths[0].id.slice(0,200)+"...";
-  }catch{
-    hadist.innerText="Sesungguhnya setiap amal tergantung niatnya. (HR. Bukhari)";
-  }
-}
-loadHadist();
-</script>
+        async function init() {
+            document.getElementById('city-input').value = currentCity;
+            updateTasbihUI();
+            loadChecks();
+            await updateData();
+            await fetchSurahs();
+            setInterval(tick, 1000);
+            initCompass();
+        }
 
+        async function updateData() {
+            try {
+                const res = await fetch(`https://api.aladhan.com/v1/timingsByCity?city=${currentCity}&country=Indonesia&method=11`);
+                const data = await res.json();
+                if(data.code !== 200) return;
+                prayerTimes = data.data.timings;
+                document.getElementById('hijri-full').innerText = `${data.data.date.hijri.day} ${data.data.date.hijri.month.en} ${data.data.date.hijri.year} H`;
+                localStorage.setItem('userCity', currentCity);
+                renderGrid();
+            } catch (e) { console.error(e); }
+        }
+
+        function renderGrid() {
+            const grid = document.getElementById('prayer-grid');
+            const icons = { Imsak: 'fa-moon', Fajr: 'fa-mosque', Dhuhr: 'fa-sun', Asr: 'fa-cloud-sun', Maghrib: 'fa-cloud-moon', Isha: 'fa-star' };
+            grid.innerHTML = '';
+            ['Imsak','Fajr','Dhuhr','Asr','Maghrib','Isha'].forEach(key => {
+                grid.innerHTML += `
+                    <div id="card-${key}" class="glass-card p-4 rounded-2xl flex flex-col items-center">
+                        <i class="fa-solid ${icons[key]} text-amber-500 mb-2 text-[10px]"></i>
+                        <span class="text-[8px] text-slate-500 font-bold uppercase mb-1">${key === 'Fajr' ? 'Subuh' : key}</span>
+                        <span class="text-xs font-bold text-white">${prayerTimes[key]}</span>
+                    </div>`;
+            });
+        }
+
+        function tick() {
+            const now = new Date();
+            document.getElementById('live-clock').innerText = now.toLocaleTimeString('id-ID');
+            if(!prayerTimes.Fajr) return;
+
+            let nextTime = null, nextName = '';
+            const t = { Imsak: prayerTimes.Imsak, Subuh: prayerTimes.Fajr, Dzuhur: prayerTimes.Dhuhr, Ashar: prayerTimes.Asr, Maghrib: prayerTimes.Maghrib, Isya: prayerTimes.Isha };
+            
+            document.querySelectorAll('[id^="card-"]').forEach(c => c.classList.remove('active-prayer'));
+
+            for (const [n, val] of Object.entries(t)) {
+                const [h, m] = val.split(':'), pDate = new Date();
+                pDate.setHours(h, m, 0);
+                if(pDate > now && !nextTime) { 
+                    nextTime = pDate; nextName = n; 
+                    const cardKey = n === 'Subuh' ? 'Fajr' : (n === 'Isya' ? 'Isha' : (n === 'Dzuhur' ? 'Dhuhr' : (n === 'Ashar' ? 'Asr' : n)));
+                    const card = document.getElementById(`card-${cardKey}`);
+                    if(card) card.classList.add('active-prayer');
+                }
+            }
+
+            if(!nextTime) {
+                const [h, m] = t.Imsak.split(':');
+                nextTime = new Date(); nextTime.setDate(nextTime.getDate()+1); nextTime.setHours(h, m, 0);
+                nextName = "Imsak Besok";
+            }
+
+            const diff = nextTime - now;
+            const h = Math.floor(diff/3600000), m = Math.floor((diff%3600000)/60000), s = Math.floor((diff%60000)/1000);
+            document.getElementById('next-prayer-name').innerText = nextName;
+            document.getElementById('countdown').innerText = `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+        }
+
+        // Tasbih Logic
+        function countTasbih() {
+            tCount++; updateTasbihUI();
+            localStorage.setItem('tVal', tCount);
+            if(navigator.vibrate) navigator.vibrate(40);
+        }
+        function updateTasbihUI() {
+            document.getElementById('tasbih-display').innerText = tCount;
+            document.getElementById('tasbih-label').innerText = tCount <= 33 ? "Subhanallah" : tCount <= 66 ? "Alhamdulillah" : "Allahu Akbar";
+        }
+        function resetTasbih() { tCount = 0; updateTasbihUI(); localStorage.setItem('tVal', 0); }
+
+        // Quran Player
+        async function fetchSurahs() {
+            const res = await fetch('https://api.quran.com/api/v4/chapters');
+            const data = await res.json();
+            const select = document.getElementById('surah-select');
+            data.chapters.forEach(s => select.add(new Option(`${s.id}. ${s.name_simple}`, s.id)));
+            select.onchange = async (e) => {
+                if(!e.target.value) return;
+                const audioRes = await fetch(`https://api.quran.com/api/v4/chapter_recitations/7/${e.target.value}`);
+                const aData = await audioRes.json();
+                const player = document.getElementById('audio-player');
+                player.src = aData.audio_file.audio_url; player.play();
+            };
+        }
+
+        // Tracker & Compass
+        function saveCheck(el, key) { 
+            localStorage.setItem('sn_' + key, el.checked);
+            el.nextElementSibling.querySelector('i').style.opacity = el.checked ? "1" : "0";
+        }
+        function loadChecks() {
+            ['dhuha', 'tahajjud'].forEach(k => {
+                const checked = localStorage.getItem('sn_' + k) === 'true';
+                const input = document.querySelector(`input[onchange*="'${k}'"]`);
+                if(input) {
+                    input.checked = checked;
+                    input.nextElementSibling.querySelector('i').style.opacity = checked ? "1" : "0";
+                }
+            });
+        }
+        function initCompass() {
+            window.addEventListener('deviceorientationabsolute', (e) => {
+                let heading = e.alpha || e.webkitCompassHeading;
+                if(heading) document.getElementById('needle').style.transform = `rotate(${295 - heading}deg)`;
+            }, true);
+        }
+
+        document.getElementById('city-input').onkeypress = (e) => { if(e.key === 'Enter') { currentCity = e.target.value; updateData(); } };
+        init();
+    </script>
 </body>
 </html>
-``
