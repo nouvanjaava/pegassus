@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Islamic App Pro</title>
+
+<!-- ✅ FIX UTAMA: HOWLER BENAR -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/howler/2.2.3/howler.min.js"></script>
+
+<style>
+body{
+  margin:0;
+  padding:12px;
+  font-family:Segoe UI,sans-serif;
+  background:#121212;
+  color:#eee;
+}
+.card{
+  background:#1e1e1e;
+  border-radius:18px;
+  padding:14px;
+  margin-bottom:14px;
+}
+h3{color:#ffc107;margin-bottom:6px}
+.sholat{display:flex;justify-content:space-between;margin:5px 0}
+.active{color:#ffc107;font-weight:bold}
+input,button,select{
+  width:100%;
+  padding:10px;
+  margin-top:6px;
+  border-radius:10px;
+  border:none;
+}
+button{background:#1b5e20;color:white;font-weight:bold}
+.btn-play.playing{background:#b71c1c}
+</style>
+</head>
+
+<body>
+
+<div class="card" style="text-align:center">
+  <h3>🕒 Waktu</h3>
+  <div id="jam"></div>
+  <div id="tanggal"></div>
+</div>
+
+<div class="card">
+  <h3>🕌 Jadwal Sholat</h3>
+  <div id="countdown"></div>
+  <div id="jadwal"></div>
+</div>
+
+<div class="card">
+  <input id="kota" value="Jakarta">
+  <button onclick="loadSholat()">Cari Kota</button>
+</div>
+
+<div class="card">
+  <h3>📖 Murottal</h3>
+  <select id="surah"></select>
+  <button id="btnPlay" onclick="toggleAudio()">▶ PUTAR</button>
+</div>
+
+<div class="card">
+  <h3>📜 Hadist</h3>
+  <div id="hadist"></div>
+</div>
+
+<script>
+/* ===== JAM ===== */
+function updateTime(){
+  const d=new Date();
+  jam.innerText=d.toLocaleTimeString("id-ID",{hour12:false});
+  tanggal.innerText=d.toLocaleDateString("id-ID",{weekday:"long",day:"numeric",month:"long",year:"numeric"});
+}
+setInterval(updateTime,1000);updateTime();
+
+/* ===== SHOLAT ===== */
+let jadwal={};
+async function loadSholat(){
+  try{
+    const kota=document.getElementById("kota").value;
+    const r=await fetch(
+      `https://api.aladhan.com/v1/timingsByAddress?address=${encodeURIComponent(kota)}&country=Indonesia&method=11`
+    );
+    const j=await r.json();
+    jadwal=j.data.timings;
+
+    jadwalDiv="";
+    ["Fajr","Dhuhr","Asr","Maghrib","Isha"].forEach(k=>{
+      jadwalDiv+=`<div class="sholat">${k} <span>${jadwal[k]}</span></div>`;
+    });
+    jadwal.innerHTML=jadwalDiv;
+  }catch{
+    jadwal.innerHTML="❌ Gagal memuat jadwal";
+  }
+}
+loadSholat();
+
+/* ===== MUROTTAL ===== */
+let sound;
+async function loadSurah(){
+  const r=await fetch("https://api.alquran.cloud/v1/surah");
+  const j=await r.json();
+  j.data.forEach(s=>{
+    surah.add(new Option(`${s.number}. ${s.englishName}`,s.number));
+  });
+}
+loadSurah();
+
+function toggleAudio(){
+  if(!sound){
+    sound=new Howl({
+      src:[`https://cdn.islamic.network/quran/audio-surah/128/ar.alafasy/${surah.value}.mp3`],
+      html5:true
+    });
+  }
+  sound.playing()?sound.pause():sound.play();
+  btnPlay.classList.toggle("playing");
+}
+
+/* ===== HADIST ===== */
+async function loadHadist(){
+  try{
+    const r=await fetch("https://api.hadith.gading.dev/books/bukhari?range=1-200");
+    const j=await r.json();
+    hadist.innerText=j.data.hadiths[0].id.slice(0,200)+"...";
+  }catch{
+    hadist.innerText="Sesungguhnya setiap amal tergantung niatnya. (HR. Bukhari)";
+  }
+}
+loadHadist();
+</script>
+
+</body>
+</html>
+``
